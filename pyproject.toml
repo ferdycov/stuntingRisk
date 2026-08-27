@@ -1,0 +1,24 @@
+[project]
+name = "stunting"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "imblearn>=0.0",
+    "ipykernel>=7.3.0",
+    "matplotlib>=3.10.9",
+    "numpy>=2.2.6",
+    "pandas>=2.3.3",
+    "plotly>=6.9.0",
+    "plotly-express>=0.4.1",
+    "scikit-learn>=1.7.2",
+    "seaborn>=0.13.2",
+    "shap>=0.49.1",
+    "skim>=1.2",
+    "skimpy>=0.0.20",
+    "statsmodels>=0.14.6",
+    "streamlit>=1.61.1",
+    "tableone>=0.9.6",
+    "xgboost>=3.2.0",
+]
