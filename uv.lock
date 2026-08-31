@@ -3577,7 +3577,7 @@ requires-dist = [
     { name = "plotly-express", specifier = ">=0.4.1" },
     { name = "scikit-learn", specifier = ">=1.7.2" },
     { name = "seaborn", specifier = ">=0.13.2" },
-    { name = "shap" },
+    { name = "shap", specifier = ">=0.49.1" },
     { name = "skim", specifier = ">=1.2" },
     { name = "skimpy", specifier = ">=0.0.20" },
     { name = "statsmodels", specifier = ">=0.14.6" },

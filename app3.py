@@ -6,22 +6,16 @@ import shap
 import plotly.express as px
 import os
 
-
-# =========================================================
-# 1. PAGE CONFIG
-# =========================================================
-
+# Configuration
 st.set_page_config(
     page_title="Stunting Risk Prediction System",
-    page_icon="🛡️",
+    # page_icon="🛡️",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
 
-# =========================================================
-# 2. CUSTOM CSS
-# =========================================================
+#  Setup Cascading Style (CSS)
 
 st.markdown("""
 <style>
@@ -63,11 +57,7 @@ div[data-testid="stForm"] {
 </style>
 """, unsafe_allow_html=True)
 
-
-# =========================================================
-# 3. LOAD MODEL
-# =========================================================
-
+# Load Model & Define features model
 @st.cache_resource
 def load_model():
     artifact = joblib.load("stunting_xgb.pkl")
@@ -78,36 +68,21 @@ xgb_model = artifact["model"]
 le_ts = artifact["label_encoder"]
 feature_columns = artifact["feature_columns"]
 
-# =========================================================
-# 4. MODEL FEATURES
-# =========================================================
-
 features_ts = [
-    "measurement_age_months",
-    "sex",
-    "history_ari",
-    "history_diarrhea",
-    "complete_immunization",
-    "weight_lag_1",
-    "height_lag_1",
-    "bmi_lag_1",
-    "stunting_lag_1",
-    "wealth_index",
-    "maternal_education"
+    "measurement_age_months","sex","history_ari","wealth_index",
+    "history_diarrhea","complete_immunization","maternal_education",
+    "weight_lag_1","height_lag_1","bmi_lag_1",
+    "stunting_lag_1"
 ]
 
-
-# =========================================================
 # 5. SHAP EXPLAINER
-# =========================================================
 @st.cache_resource
 def load_shap_explainer(_model):
     return shap.TreeExplainer(_model)
 
 explainer = load_shap_explainer(xgb_model)
-# =========================================================
+
 # 6. FUNCTION PREPROCESS DATA BARU
-# =========================================================
 def preprocess_new_data(input_data,feature_columns):
     # One-hot encoding
     X_new = pd.get_dummies(input_data,drop_first=True)
@@ -115,15 +90,12 @@ def preprocess_new_data(input_data,feature_columns):
     X_new = X_new.reindex(columns=feature_columns,fill_value=0)
     return X_new
 
-# =========================================================
 # 7. FUNCTION SHAP INDIVIDUAL
-# =========================================================
 def get_shap_values(model,explainer,X):
     shap_result = explainer(X)
     return shap_result
-# =========================================================
+
 # 8. HEADER
-# =========================================================
 st.markdown("""
 <div style="background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
     padding: 28px;
@@ -131,39 +103,86 @@ st.markdown("""
     color: white;
     margin-bottom: 24px;
 ">
-<h1 style="margin:0;font-size:2.1rem;font-weight:700;">🛡️ Stunting Risk Prediction Engine</h1>
+<h1 style="margin:0;font-size:2.1rem;font-weight:700;">Stunting Risk Prediction Engine</h1>
 <p style="margin-top:6px;opacity:0.85;font-size:0.95rem;">
 Sistem Pendukung Keputusan Berbasis Machine Learning
 untuk Pemetaan dan Intervensi Dini Risiko Stunting.
 </p>
 </div>
 """, unsafe_allow_html=True)
-# =========================================================
 # 9. TABS
-# =========================================================
-tab1, tab2 = st.tabs(["📋 Asesmen & Prediksi Individu","📊 Overview Model"])
+tab1, tab2, tab3 = st.tabs(["📊 Overview Dataset","📋 Asesmen & Prediksi Individu","📊 Overview Model"])
 
-# =========================================================
 # TAB 1
-# =========================================================
+with tab1 :
+    st.subheader("Ringkasan Dataset")
+    # st.caption("Dataset yang digunakan ialah dataset sintetis.")
+    st.text("Dataset ini merupakan dataset dummy/sintetis yang dibuat untuk keperluan pembelajaran dan pengembangan"
+    "model Machine Learning dalam analisis risiko stunting pada anak. Dataset merepresentasikan data karakteristik anak,"
+    "pengukuran antropometri, riwayat kesehatan, status imunisasi serta informasi kesehatan maternal yang berkaitan dengan"
+    "kondisi pertumbuhan anak\n\n"
+    
+    "Setiap baris pada dataset merepresentasikan satu anak, sedangkan setiap kolom merepresentasikan karakteristik atau indikator"
+    "kesehatan yang diamati. Variabel antropometri meliputi usia anak dalam bulan, berat badan, tinggi badan, dan BMI." 
+    "Dataset juga mencakup beberapa variabel riwayat kesehatan seperti Acute Respiratory Infection (ARI),"
+    "kelengkapan imunisasi, serta jumlah kunjungan Antenatal Care (ANC) selama masa kehamilan."
 
-with tab1:
+    "Variabel status_stunting digunakan sebagai variabel target yang menggambarkan kategori status pertumbuhan anak, misalnya Normal,"
+    "Stunted, Severely Stunted, dan Tall. Karena dataset ini bersifat dummy/sintetis, data tidak merepresentasikan individu atau "
+    "kondisi kesehatan nyata dan tidak dapat digunakan untuk diagnosis klinis maupun pengambilan keputusan medis.\n\n"
+
+    "Dataset ditujukan untuk simulasi proses Exploratory Data Analysis (EDA), statistical analysis, feature selection, classification" 
+    "modelling, model evaluation dan interpretasi risiko stunting",text_alignment="justify")
+    
+    st.subheader("Visualisasi")
+    pic_1, caption_1 = st.columns(2)
+    with pic_1 : 
+        tile1 = st.container()
+        tile1.image("grafik_kombinasi.png")
+    with caption_1 :
+        tile1 = st.container()
+        tile1.text(
+        "Wrap Grafik\n\n"
+        "Sebagai studi awal, distribusi status pertumbuhan pada 121.902 pengukuran anak menunjukkan bahwa sebagian besar anak berada "
+        "pada\nKategori Normal : 54.789 anak; Severely stunted : 28.868 anak; Tall 28.192 anak; Stunted 10.053 anak."
+        "\nHal ini menunjukkan bahwa karakteristik "
+        "status pertumbuhan cukup beragam, dengan kategori Stunted memiliki jumlah observasi paling rendah dibandingkan "
+        "kategori lainnya\n"
+        
+        "Proses eksplorasi juga menunjukkan bahwa : \nStatus pertumbuhan anak memiliki hubungan yang kuat dengan karakteristik; "
+        "antropometri dan umur.\nPola distribusi TB/U memperlihatkan pemisahan yang cukup jelas antar status; "
+        "pertumbuhan TB/U dan HAZ menunjukkan adanya keterkaitan struktural antar indikator pertumbuhan."
+        "\nTemuan ini mendukung penggunaan variabel antropometri dan riwayat pertumbuhan sebagai prediktor, tetapi juga "
+        "menunjukkan perlunya perhatian terhadap redundansi informasi dan potensi leakage, khususnya apabila tujuan model adalah "
+        "memprediksi insidensi stunting pada pengukuran berikutnya", text_alignment="justify")
+
+    pic_2,caption_2 = st.columns(2)
+    with pic_2 :
+        tile2 = st.container()
+        tile2.image("matrik_korelasi.png", caption="")
+    with caption_2 :
+        tile2 = st.container()
+        tile2.text("Matrik Korelasi\n\nHasil analisis korelasi menunjukkan adanya hubungan yang cukup kuat antara\nBerat badan dengan BMI (r=0,73), "
+        "\nTinggi badan dengan umur (r=0,69), \nTinggi badan dengan HAZ (r=0,69).\n\nKorelasi antara berat badan dan BMI merupakan "
+        "konsekuensi dari hubungan matematis dalam perhitungan BMI, sedangkan korelasi tinggi badan dan umur mencerminkan pertumbuhan "
+        "anak seiring bertambahnya usia. Korelasi tinggi badan dengan HAZ juga menunjukkan keterkaitan erat karena HAZ merupakan "
+        "indikator tinggi badan menurut umur. Sebaliknya, sebagian besar variabel kelahiran dan tinggi badan ibu menunjukkan korelasi "
+        "yang sangat rendah dengan antropometri anak pada saat pengukuran. Temuan ini menunjukkan bahwa variabel antropometri saat ini "
+        "mengandung informasi yang kuat mengenai status pertumbuhan, namun juga memiliki potensi redundansi informasi sehingga perlu "
+        "diperhatikan dalam pemilihan fitur dan interpretasi model",text_alignment="justify")
+
+# TAB 2
+with tab2:
     st.subheader("1. Masukkan Parameter Anak")
     st.caption(
         "Masukkan karakteristik anak, riwayat kesehatan, "
         "pertumbuhan, dan faktor sosial ekonomi."
     )
 
-    # =====================================================
     # FORM
-    # =====================================================
-
-    with st.form("stunting_prediction_form"):
-        # -------------------------------------------------
-        # PILAR 1
-        # -------------------------------------------------
+    with st.form("stunting_prediction_form"):        
+        # PILAR 1        
         st.markdown("##### 👶 Demografi & Kondisi Kesehatan")
-
         col1, col2, col3 = st.columns(3)
         with col1:
             measurement_age_months = st.number_input(
@@ -173,31 +192,23 @@ with tab1:
                 value=24.0,
                 step=1.0
             )
-
         with col2:
             sex = st.selectbox("Jenis Kelamin",["Female","Male"])
-
         with col3:
             history_ari = st.selectbox("Riwayat ISPA",["No","Yes"])
 
         col4, col5, col6 = st.columns(3)
         with col4:
             history_diarrhea = st.selectbox("Riwayat Diare",["No","Yes"])
-
         with col5:
             complete_immunization = st.selectbox("Imunisasi Lengkap",["Yes","No"])
-
         with col6:
             stunting_lag_1 = st.selectbox("Status Stunting Sebelumnya",["Normal","Severely stunted","Tall","Stunted"])
-
         st.markdown("---")
 
-        # -------------------------------------------------
-        # PILAR 2
-        # -------------------------------------------------
-
+        
+        # PILAR 2     
         st.markdown("##### 📏 Riwayat Pertumbuhan & Antropometri")
-
         col7, col8, col9 = st.columns(3)
         with col7:
             weight_lag_1 = st.number_input(
@@ -207,7 +218,6 @@ with tab1:
                 value=8.5,
                 step=0.1
             )
-
         with col8:
             height_lag_1 = st.number_input(
                 "Tinggi Badan Sebelumnya (cm)",
@@ -216,7 +226,6 @@ with tab1:
                 value=78.0,
                 step=0.1
             )
-
         with col9:
             bmi_lag_1 = st.number_input(
                 "BMI Sebelumnya",
@@ -225,38 +234,23 @@ with tab1:
                 value=13.9,
                 step=0.1
             )
-
         st.markdown("---")
-
-
-        # -------------------------------------------------
+        
         # PILAR 3
-        # -------------------------------------------------
-
         st.markdown("##### 🏡 Sosio-Ekonomi & Pendidikan")
-
         col10, col11 = st.columns(2)
-
         with col10:
             wealth_index = st.selectbox("Indeks Kesejahteraan",
                 ["Poorest","Poorer","Middle","Richer","Richest"])
-
         with col11:
             maternal_education = st.selectbox("Pendidikan Ibu",
                 ["Primary school","Junior high school","Senior high school","Bachelors degree"])
-
         st.markdown( "<br>",unsafe_allow_html=True)
-
         btn_submit = st.form_submit_button("🚀 Jalankan Prediksi Risiko")
 
-    # =====================================================
     # PREDICTION
-    # =====================================================
-
     if btn_submit:
-        # =================================================
         # 1. CREATE DATAFRAME
-        # =================================================
         input_data = pd.DataFrame([{
             "measurement_age_months":measurement_age_months,
             "sex":sex,
@@ -271,40 +265,22 @@ with tab1:
             "maternal_education":maternal_education
         }])
 
-        # =================================================
         # 2. PREPROCESSING
-        # =================================================
         X_new = preprocess_new_data(input_data,feature_columns)
-
-        # =================================================
         # 3. PREDICTION
-        # =================================================
         prediction = xgb_model.predict(X_new)
-
-        # =================================================
         # 4. PREDICT PROBA
-        # =================================================
         probability = (xgb_model.predict_proba(X_new)[0])
-
-        # =================================================
         # 5. DECODE CLASS
-        # =================================================
         predicted_status = (le_ts.inverse_transform(prediction)[0])
-
-        # =================================================
         # 6. PROBABILITY DATAFRAME
-        # =================================================
         probability_df = pd.DataFrame({
             "Status":le_ts.classes_,
             "Probability":probability
         })
-
         probability_df["Probability (%)"] = (probability_df["Probability"]* 100)
 
-        # =================================================
         # 7. STUNTING RISK
-        # =================================================
-
         risk_classes = ["Stunted","Severely stunted"]
         risk_probability = (
             probability_df.loc[
@@ -313,13 +289,9 @@ with tab1:
                 "Probability"
             ].sum()
         )
-
         risk_percentage = (risk_probability * 100)
 
-        # =================================================
         # 8. RISK CATEGORY
-        # =================================================
-
         if risk_percentage >= 70:
             risk_category = ("RISIKO TINGGI")
         elif risk_percentage >= 30:
@@ -327,49 +299,34 @@ with tab1:
         else:
             risk_category = ("RISIKO RENDAH")
 
-        # =================================================
         # RESULT
-        # =================================================
         st.markdown("---")
-
         st.subheader("2. Hasil Analisis Risiko")
-
         res_col1, res_col2 = st.columns([1, 1.8])
 
-        # =================================================
         # LEFT
-        # =================================================
-
         with res_col1:
-
             st.markdown("##### Indikator Risiko")
             st.metric("Probabilitas Risiko Stunting",f"{risk_percentage:.1f}%")
             st.progress(float(min(risk_percentage / 100, 1.0)))
-
             if risk_percentage >= 70:
                 st.error(f"🚨 **{risk_category}**")
             elif risk_percentage >= 30:
                 st.warning(f"⚠️ **{risk_category}**")
             else:
                 st.success(f"✅ **{risk_category}**")
-
             st.markdown("##### Prediksi Status")
             st.info(f"**{predicted_status}**")
 
-        # =================================================
         # RIGHT
-        # =================================================
-
         with res_col2:
             st.markdown("##### Probabilitas Setiap Status")
-
             fig_prob = px.bar(probability_df,
                 x="Probability (%)",
                 y="Status",
                 orientation="h",
                 text="Probability (%)"
             )
-
             fig_prob.update_traces(texttemplate="%{text:.1f}%",textposition="outside")
             fig_prob.update_layout(
                 height=300,
@@ -377,54 +334,33 @@ with tab1:
                 plot_bgcolor="rgba(0,0,0,0)",
                 paper_bgcolor="rgba(0,0,0,0)"
             )
-
             st.plotly_chart(fig_prob,use_container_width=True)
 
-        # =================================================
         # SHAP
-        # =================================================
-
         st.markdown("---")
-
         st.subheader("3. Analisis Faktor Risiko (SHAP)")
-
         st.caption(
             "SHAP menunjukkan kontribusi masing-masing "
             "fitur terhadap prediksi model."
         )
-
-        # -------------------------------------------------
+        
         # SHAP CALCULATION
-        # -------------------------------------------------
         shap_result = get_shap_values(xgb_model,explainer,X_new)
-
-        # =================================================
         # IDENTIFY STUNTED CLASS
-        # =================================================
         classes = list(le_ts.classes_)
         stunted_class = classes.index("Stunted")
         severe_class = classes.index("Severely stunted")
-        # =================================================
         # SHAP VALUES
-        # =================================================
         shap_stunted = (shap_result.values[0,:,stunted_class])
         shap_severe = (shap_result.values[0,:,severe_class])
-
-        # =================================================
         # COMBINED SHAP
-        # =================================================
         shap_risk = (shap_stunted+shap_severe)
-
-        # =================================================
         # SHAP DATAFRAME
-        # =================================================
         shap_df = pd.DataFrame({"Feature":X_new.columns,"SHAP":shap_risk})
         shap_df["Absolute SHAP"] = (shap_df["SHAP"].abs())
         shap_df = shap_df.sort_values("Absolute SHAP",ascending=False)
 
-        # =================================================
         # TOP SHAP
-        # =================================================
         top_shap = (shap_df.head(10).sort_values("SHAP"))
         fig_shap = px.bar(top_shap,x="SHAP",y="Feature",orientation="h",text="SHAP")
         fig_shap.update_traces(texttemplate="%{text:.3f}",textposition="outside")
@@ -433,23 +369,16 @@ with tab1:
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)"
         )
-
         st.plotly_chart(fig_shap,use_container_width=True)
 
-        # =================================================
         # TOP FACTORS
-        # =================================================
         factor_col1, factor_col2 = st.columns(2)
-        # -------------------------------------------------
         # INCREASE RISK
-        # -------------------------------------------------
         with factor_col1:
             st.markdown("##### 🔴 Faktor yang Meningkatkan Risiko")
-
             risk_factors = (
                 shap_df[shap_df["SHAP"] > 0].sort_values("SHAP",ascending=False).head(5)
             )
-
             if len(risk_factors) > 0:
                 for _, row in risk_factors.iterrows():
                     st.write(
@@ -458,17 +387,13 @@ with tab1:
                     )
             else:
                 st.success("Tidak terdapat faktor positif dominan.")
-        # -------------------------------------------------
+        
         # DECREASE RISK
-        # -------------------------------------------------
-
         with factor_col2:
-
             st.markdown("##### 🟢 Faktor yang Menurunkan Risiko")
             protective_factors = (
                 shap_df[shap_df["SHAP"] < 0].sort_values("SHAP").head(5)
             )
-
             if len(protective_factors) > 0:
                 for _, row in protective_factors.iterrows():
                     st.write(
@@ -477,9 +402,7 @@ with tab1:
                     )
             else:
                 st.info("Tidak terdapat faktor protektif dominan.")
-        # =================================================
         # INPUT DATA
-        # =================================================
         st.markdown("---")
         st.markdown("##### 📋 Data Input")
         st.dataframe(
@@ -487,59 +410,94 @@ with tab1:
             use_container_width=True
         )
 
-        # =================================================
         # PROBABILITY TABLE
-        # =================================================
         st.markdown("##### 📊 Detail Probabilitas")
         st.dataframe(
-            probability_df[
-                [
-                    "Status",
-                    "Probability (%)"
-                ]
-            ].style.format({
-                "Probability (%)": "{:.2f}%"
-            }),
+            probability_df[["Status","Probability (%)"]]
+            .style.format({"Probability (%)": "{:.2f}%"}),
             hide_index=True,
             use_container_width=True
         )
 
+# TAB 3
+with tab3:
+    st.subheader("Evaluasi Performa Model Machine Learning : Model XGBoost")
+    st.caption("Ringkasan validasi performa model Machine Learning yang digunakan oleh sistem.")
 
-# =========================================================
-# TAB 2
-# =========================================================
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Akurasi (Accuracy)", "81.21%", "+1.5%")
+    m2.metric("ROC-AUC Score", "0.9263", "High Discrimination")
+    m3.metric("F1-Score", "0.7343", "Balanced")
 
-with tab2:
-
-    st.subheader("Evaluasi Model XGBoost")
-    st.caption("Informasi model yang digunakan oleh sistem.")
-
-    # =====================================================
     # MODEL INFORMATION
-    # =====================================================
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Model","XGBoost")
-    col2.metric("Features",len(features_ts))
-    col3.metric("Target","Multiclass")
-    col4.metric("Classes",len(le_ts.classes_))
+    # col1, col2, col3, col4 = st.columns(4)
+    # col1.metric("Model","XGBoost")
+    # col2.metric("Features",len(features_ts))
+    # col3.metric("Target","Multiclass")
+    # col4.metric("Classes",len(le_ts.classes_))
+
     st.markdown("---")
 
-    # =====================================================
-    # CLASS MAPPING
-    # =====================================================
-    st.markdown("##### Target Classes")
-    class_df = pd.DataFrame({
-        "Encoded":range(len(le_ts.classes_)),
-        "Status":le_ts.classes_
-    })
-    st.dataframe(class_df,hide_index=True,use_container_width=True)
+    col_chart1, col_chart2 = st.columns(2)
+    
+    with col_chart1:
+        st.markdown("##### Global Feature Importance")
+        # Grafik Importance dengan Plotly Express
+        global_feat = pd.DataFrame({
+            'Indikator': [
+                'stunting_lag_1_Tall', 'stunting_lag_1_Severely stunted', 'stunting_lag_1_Stunted', 
+                'height_lag_1', 'measurement_age_months', 'sex', 'wealth_index',
+                'history_diarrhea', 'history_ari', 'wealth_index'
+            ],
+            'Importance': [0.42,0.42,0.13,0.006,0.003,0.001,0.0005,0.0004,0.0004,0.0004]
+        }).sort_values(by='Importance', ascending=True)
+        
+        fig_imp = px.bar(
+            global_feat, 
+            x='Importance', 
+            y='Indikator', 
+            orientation='h', 
+            color_discrete_sequence=['#2563EB']
+        )
+        fig_imp.update_layout(height=400, plot_bgcolor='rgba(0,0,0,0)')
+        st.plotly_chart(fig_imp, use_container_width=True)
+        
+    with col_chart2:
+        st.markdown("##### Confusion Matrix")
+        # Heatmap Confusion Matrix dengan Plotly Express
+        conf_matrix = pd.DataFrame(
+            [[9466,  249,  689,  728],
+            [ 182, 4945,  577,    0],
+            [ 642,  709,  789,    0],
+            [ 800,    0,    0, 4573]], 
+            columns=['Prediksi Normal', 'Prediksi Severely stunted', 'Prediksi Stunted', 'Prediksi Tall'],
+            index=['Aktual Normal', 'Aktual Severely stunted', 'Aktual Stunted', 'Aktual Tall']
+        )
+        fig_cm = px.imshow(
+            conf_matrix, 
+            text_auto=True, 
+            color_continuous_scale='Blues',
+            labels=dict(x="Hasil Prediksi Model", y="Kondisi Asli (Aktual)", color="Jumlah Pasien")
+        )
+        fig_cm.update_layout(height=400)
+        st.plotly_chart(fig_cm, use_container_width=True)
 
-    # =====================================================
-    # FEATURES
-    # =====================================================
-    st.markdown("##### Model Features")
-    feature_df = pd.DataFrame({
-        "No":range(1,len(features_ts) + 1),
-        "Feature":features_ts
-    })
-    st.dataframe(feature_df,hide_index=True,use_container_width=True)
+    st.markdown("---")
+    
+    desc1,desc2 = st.columns(2)
+    with desc1 :
+        # Class mapping
+        st.markdown("##### Target Classes")
+        class_df = pd.DataFrame({
+            "Encoded":range(len(le_ts.classes_)),
+            "Status":le_ts.classes_
+        })
+        st.dataframe(class_df,hide_index=True,use_container_width=True)
+    with desc2 :
+        # Features
+        st.markdown("##### Model Features")
+        feature_df = pd.DataFrame({
+            "No":range(1,len(features_ts) + 1),
+            "Feature":features_ts
+        })
+        st.dataframe(feature_df,hide_index=True,use_container_width=True)
