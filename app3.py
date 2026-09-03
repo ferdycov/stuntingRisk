@@ -234,7 +234,7 @@ with tab2:
         col9.number_input(
             "BMI Sebelumnya",
             min_value=0.0,
-            max_value=50.0,
+            max_value=1000.0,
             value=float(bmi_lag_1),
             step=0.01,
             disabled=True
@@ -298,7 +298,8 @@ with tab2:
         projected_age = measurement_age_months + projection_months
         projected_weight = weight_lag_1 + delta_weight
         projected_height = height_lag_1 + delta_height
-        # calculate hz 
+
+        # haz future
         z = projected_height
         projected_age = int(round(projected_age))
         match = ref_who.loc[(ref_who["age_months"] == projected_age) & (ref_who["sex"] == sex)]
@@ -318,7 +319,14 @@ with tab2:
         elif haz_future <= 3:
             status_future = "Normal"
         else:
-            status_future = "Tall"    
+            status_future = "Tall"   
+
+        # reverse haz
+        if status_future in ["Severely stunted", "Stunted"]:
+            haz_based = -1.99
+            z_based = (m_val * ((haz_based * l_val * s_val) + 1) ** (1 / l_val))
+        else:
+            z_based = None
 
         # 1. CREATE DATAFRAME
         input_data = pd.DataFrame([{
@@ -372,6 +380,7 @@ with tab2:
         # RESULT
         st.markdown("---")
         st.subheader("2.0 Simulasi Pertumbuhan")
+
         # Haz Now
         match = ref_who.loc[(ref_who["age_months"] == round(measurement_age_months)) & (ref_who["sex"] == sex)]
         if match.empty:
@@ -381,15 +390,15 @@ with tab2:
         haz_now = (((height_lag_1 / m_val) ** l_val) - 1) / (l_val * s_val)
         haz_now = round(haz_now, 2)
 
-        col1, col2 = st.columns(2)
+        col1, col2, col3  = st.columns(3)
         with col1:
-            st.markdown("#### Saat Ini")
+            st.markdown("#### 👶 Saat Ini")
             st.write(f"**Umur**  {measurement_age_months:.0f} bulan")
             st.write(f"**TB**  {height_lag_1:.1f} cm")
             st.write(f"**HAZ**  {haz_now:.2f} SD")
             st.write(f"**Status**  {predicted_status}")
         with col2:
-            st.markdown(f"#### Proyeksi +{projection_months} Bulan")
+            st.markdown(f"#### 📈 Proyeksi +{projection_months} Bulan")
             st.write(f"**Umur**  {projected_age:.0f} bulan")
             st.write(f"**TB**  {projected_height:.1f} cm  "
                 f"(↑ {delta_height:.1f} cm)")
@@ -397,6 +406,13 @@ with tab2:
                 f"(↑ {haz_future - haz_now:.2f} SD)"
             )
             st.write(f"**Status**  {status_future}")
+        with col3:
+            if z_based is not None:
+                st.markdown(f"#### 🎯 Target Naik TB {projection_months} Bulan (min)")
+                st.write(f"**Umur**  {projected_age:.0f} bulan")
+                st.write(f"**TB**  {z_based:.1f} cm  "
+                    f"(↑ {z_based-projected_height:.1f} cm)")
+                # st.write(f"**HAZ**  {haz_based:.2f} SD  ")
         st.markdown("---")
 
         st.subheader("2.1 Hasil Analisis Risiko")
