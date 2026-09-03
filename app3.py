@@ -210,33 +210,76 @@ with tab2:
         # PILAR 2     
         st.markdown("##### 📏 Riwayat Pertumbuhan & Antropometri")
         col7, col8, col9 = st.columns(3)
-        with col7:
-            weight_lag_1 = st.number_input(
-                "Berat Badan Sebelumnya (kg)",
+        weight_lag_1 = col7.number_input(
+            "Berat Badan Sebelumnya (kg)",
+            min_value=0.0,
+            max_value=100.0,
+            value=10.0,
+            step=0.1
+        )
+        height_lag_1 = col8.number_input(
+            "Tinggi Badan Sebelumnya (cm)",
+            min_value=1.0,
+            max_value=200.0,
+            value=80.0,
+            step=0.1
+        )
+        # Hitung BMI otomatis
+        if height_lag_1 > 0:
+            bmi_lag_1 = weight_lag_1 / ((height_lag_1 / 100) ** 2)
+        else:
+            bmi_lag_1 = 0.0
+        # Tampilkan BMI otomatis
+        # col9.metric("BMI Sebelumnya",f"{bmi_lag_1:.2f}")
+        col9.number_input(
+            "BMI Sebelumnya",
+            min_value=0.0,
+            max_value=50.0,
+            value=float(bmi_lag_1),
+            step=0.01,
+            disabled=True
+        )
+        st.markdown("---")
+
+        # PILAR 3
+        st.markdown("##### 🔮 Growth Simulator")
+        st.info(
+            "Simulasikan perubahan status gizi berdasarkan perkiraan "
+            "kenaikan berat dan tinggi badan dalam beberapa bulan ke depan."
+        )
+
+        col_sim1, col_sim2, col_sim3 = st.columns(3)
+
+        with col_sim1:
+            projection_months = st.number_input(
+                "Periode Proyeksi (bulan)",
+                min_value=1,
+                max_value=24,
+                value=2,
+                step=1
+            )
+
+        with col_sim2:
+            delta_weight = st.number_input(
+                "Perkiraan Kenaikan BB (kg)",
                 min_value=0.0,
-                max_value=100.0,
-                value=8.5,
+                max_value=20.0,
+                value=0.5,
                 step=0.1
             )
-        with col8:
-            height_lag_1 = st.number_input(
-                "Tinggi Badan Sebelumnya (cm)",
+
+        with col_sim3:
+            delta_height = st.number_input(
+                "Perkiraan Kenaikan TB (cm)",
                 min_value=0.0,
-                max_value=200.0,
-                value=78.0,
-                step=0.1
-            )
-        with col9:
-            bmi_lag_1 = st.number_input(
-                "BMI Sebelumnya",
-                min_value=0.0,
-                max_value=50.0,
-                value=13.9,
+                max_value=30.0,
+                value=1.5,
                 step=0.1
             )
         st.markdown("---")
+
         
-        # PILAR 3
+        # PILAR 4
         st.markdown("##### 🏡 Sosio-Ekonomi & Pendidikan")
         col10, col11 = st.columns(2)
         with col10:
@@ -250,6 +293,33 @@ with tab2:
 
     # PREDICTION
     if btn_submit:
+        # 0. GROWTH SIMULATOR
+        ref_who = pd.read_csv("who_length_height_for_age_reference_0_60_months.xlsx - WHO_reference.csv")
+        projected_age = measurement_age_months + projection_months
+        projected_weight = weight_lag_1 + delta_weight
+        projected_height = height_lag_1 + delta_height
+        # calculate hz 
+        z = projected_height
+        projected_age = int(round(projected_age))
+        match = ref_who.loc[(ref_who["age_months"] == projected_age) & (ref_who["sex"] == sex)]
+        if match.empty:
+            np.nan
+        ref = match.iloc[0]
+        l_val, m_val, s_val = ref["L"], ref["M"], ref["S"]
+        haz_future = (((z / m_val) ** l_val) - 1) / (l_val * s_val)
+        haz_future = round(haz_future, 2)
+
+        if pd.isna(haz_future):
+            status_future = "Unknown"
+        if haz_future < -3:
+            status_future = "Severely stunted"
+        elif haz_future < -2:
+            status_future = "Stunted"
+        elif haz_future <= 3:
+            status_future = "Normal"
+        else:
+            status_future = "Tall"    
+
         # 1. CREATE DATAFRAME
         input_data = pd.DataFrame([{
             "measurement_age_months":measurement_age_months,
@@ -301,7 +371,35 @@ with tab2:
 
         # RESULT
         st.markdown("---")
-        st.subheader("2. Hasil Analisis Risiko")
+        st.subheader("2.0 Simulasi Pertumbuhan")
+        # Haz Now
+        match = ref_who.loc[(ref_who["age_months"] == round(measurement_age_months)) & (ref_who["sex"] == sex)]
+        if match.empty:
+            np.nan
+        ref = match.iloc[0]
+        l_val, m_val, s_val = ref["L"], ref["M"], ref["S"]
+        haz_now = (((height_lag_1 / m_val) ** l_val) - 1) / (l_val * s_val)
+        haz_now = round(haz_now, 2)
+
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("#### Saat Ini")
+            st.write(f"**Umur**  {measurement_age_months:.0f} bulan")
+            st.write(f"**TB**  {height_lag_1:.1f} cm")
+            st.write(f"**HAZ**  {haz_now:.2f} SD")
+            st.write(f"**Status**  {predicted_status}")
+        with col2:
+            st.markdown(f"#### Proyeksi +{projection_months} Bulan")
+            st.write(f"**Umur**  {projected_age:.0f} bulan")
+            st.write(f"**TB**  {projected_height:.1f} cm  "
+                f"(↑ {delta_height:.1f} cm)")
+            st.write(f"**HAZ**  {haz_future:.2f} SD  "
+                f"(↑ {haz_future - haz_now:.2f} SD)"
+            )
+            st.write(f"**Status**  {status_future}")
+        st.markdown("---")
+
+        st.subheader("2.1 Hasil Analisis Risiko")
         res_col1, res_col2 = st.columns([1, 1.8])
 
         # LEFT
