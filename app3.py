@@ -183,7 +183,7 @@ with tab2:
     with st.form("stunting_prediction_form"):        
         # PILAR 1        
         st.markdown("##### 👶 Demografi & Kondisi Kesehatan")
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4, col5, col6 = st.columns(6)
         with col1:
             measurement_age_months = st.number_input(
                 "Usia Pengukuran (bulan)",
@@ -196,14 +196,20 @@ with tab2:
             sex = st.selectbox("Jenis Kelamin",["Female","Male"])
         with col3:
             history_ari = st.selectbox("Riwayat ISPA",["No","Yes"])
-
-        col4, col5, col6 = st.columns(3)
         with col4:
             history_diarrhea = st.selectbox("Riwayat Diare",["No","Yes"])
         with col5:
             complete_immunization = st.selectbox("Imunisasi Lengkap",["Yes","No"])
         with col6:
             stunting_lag_1 = st.selectbox("Status Stunting Sebelumnya",["Normal","Severely stunted","Tall","Stunted"])
+
+        # col4, col5, col6 = st.columns(3)
+        # with col4:
+        #     history_diarrhea = st.selectbox("Riwayat Diare",["No","Yes"])
+        # with col5:
+        #     complete_immunization = st.selectbox("Imunisasi Lengkap",["Yes","No"])
+        # with col6:
+        #     stunting_lag_1 = st.selectbox("Status Stunting Sebelumnya",["Normal","Severely stunted","Tall","Stunted"])
         st.markdown("---")
 
         
@@ -376,47 +382,11 @@ with tab2:
             risk_category = ("RISIKO SEDANG")
         else:
             risk_category = ("RISIKO RENDAH")
-
-        # RESULT
-        st.markdown("---")
-        st.subheader("2.0 Simulasi Pertumbuhan")
-
-        # Haz Now
-        match = ref_who.loc[(ref_who["age_months"] == round(measurement_age_months)) & (ref_who["sex"] == sex)]
-        if match.empty:
-            np.nan
-        ref = match.iloc[0]
-        l_val, m_val, s_val = ref["L"], ref["M"], ref["S"]
-        haz_now = (((height_lag_1 / m_val) ** l_val) - 1) / (l_val * s_val)
-        haz_now = round(haz_now, 2)
-
-        col1, col2, col3  = st.columns(3)
-        with col1:
-            st.markdown("#### 👶 Saat Ini")
-            st.write(f"**Umur**  {measurement_age_months:.0f} bulan")
-            st.write(f"**TB**  {height_lag_1:.1f} cm")
-            st.write(f"**HAZ**  {haz_now:.2f} SD")
-            st.write(f"**Status**  {predicted_status}")
-        with col2:
-            st.markdown(f"#### 📈 Proyeksi +{projection_months} Bulan")
-            st.write(f"**Umur**  {projected_age:.0f} bulan")
-            st.write(f"**TB**  {projected_height:.1f} cm  "
-                f"(↑ {delta_height:.1f} cm)")
-            st.write(f"**HAZ**  {haz_future:.2f} SD  "
-                f"(↑ {haz_future - haz_now:.2f} SD)"
-            )
-            st.write(f"**Status**  {status_future}")
-        with col3:
-            if z_based is not None:
-                st.markdown(f"#### 🎯 Target Naik TB {projection_months} Bulan (min)")
-                st.write(f"**Umur**  {projected_age:.0f} bulan")
-                st.write(f"**TB**  {z_based:.1f} cm  "
-                    f"(↑ {z_based-projected_height:.1f} cm)")
-                # st.write(f"**HAZ**  {haz_based:.2f} SD  ")
+        
         st.markdown("---")
 
-        st.subheader("2.1 Hasil Analisis Risiko")
-        res_col1, res_col2 = st.columns([1, 1.8])
+        st.subheader("2. Hasil Analisis Risiko")
+        res_col1, res_col2, res_col3 = st.columns([0.8, 1.8, 1])
 
         # LEFT
         with res_col1:
@@ -432,7 +402,6 @@ with tab2:
             st.markdown("##### Prediksi Status")
             st.info(f"**{predicted_status}**")
 
-        # RIGHT
         with res_col2:
             st.markdown("##### Probabilitas Setiap Status")
             fig_prob = px.bar(probability_df,
@@ -449,6 +418,44 @@ with tab2:
                 paper_bgcolor="rgba(0,0,0,0)"
             )
             st.plotly_chart(fig_prob,use_container_width=True)
+
+        # RIGHT
+        with res_col3:
+            # Haz Now
+            match = ref_who.loc[(ref_who["age_months"] == round(measurement_age_months)) & (ref_who["sex"] == sex)]
+            if match.empty:
+                np.nan
+            ref = match.iloc[0]
+            l_val, m_val, s_val = ref["L"], ref["M"], ref["S"]
+            haz_now = (((height_lag_1 / m_val) ** l_val) - 1) / (l_val * s_val)
+            haz_now = round(haz_now, 2)
+            # Haz Now
+            # st.markdown("##### 👶 Saat Ini")
+            # st.write(f"**Umur**  {measurement_age_months:.0f} bulan")
+            # st.write(f"**TB**  {height_lag_1:.1f} cm")
+            # st.write(f"**HAZ**  {haz_now:.2f} SD")
+            # st.write(f"**Status**  {predicted_status}")
+
+            st.markdown(f"##### 📈 Proyeksi +{projection_months} Bulan")
+            st.write(f"**Umur**  {projected_age:.0f} bulan")
+            st.write(f"**TB**  {projected_height:.1f} cm  "
+                f"(↑ {delta_height:.1f} cm)")
+            st.write(f"**HAZ**  {haz_future:.2f} SD  "
+                f"(↑ {haz_future - haz_now:.2f} SD)"
+            )
+        
+            if status_future in ["Severely stunted", "Stunted"]:
+                st.error(f"🚨 **{status_future}**")
+            else:
+                st.success(f"✅ **{status_future}**")
+
+            if z_based is not None:
+                st.markdown(f"##### 🎯 Target Naik TB {projection_months} Bulan (min)")
+                st.write(f"**Umur**  {projected_age:.0f} bulan")
+                st.write(f"**TB**  {z_based:.1f} cm  "
+                    f"(↑ {z_based-projected_height:.1f} cm)")
+                # st.write(f"**HAZ**  {haz_based:.2f} SD  ")
+
 
         # SHAP
         st.markdown("---")
