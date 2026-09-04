@@ -211,16 +211,7 @@ with tab2:
             complete_immunization = st.selectbox("Imunisasi Lengkap",["Yes","No"])
         with col6:
             stunting_lag_1 = st.selectbox("Status Stunting Sebelumnya",["Normal","Severely stunted","Tall","Stunted"])
-
-        # col4, col5, col6 = st.columns(3)
-        # with col4:
-        #     history_diarrhea = st.selectbox("Riwayat Diare",["No","Yes"])
-        # with col5:
-        #     complete_immunization = st.selectbox("Imunisasi Lengkap",["Yes","No"])
-        # with col6:
-        #     stunting_lag_1 = st.selectbox("Status Stunting Sebelumnya",["Normal","Severely stunted","Tall","Stunted"])
         st.markdown("---")
-
         
         # PILAR 2     
         st.markdown("##### 📏 Riwayat Pertumbuhan & Antropometri")
@@ -287,7 +278,7 @@ with tab2:
             delta_height = st.number_input(
                 "Perkiraan Kenaikan TB (cm)",
                 min_value=0.0,
-                max_value=30.0,
+                max_value=100.0,
                 value=1.5,
                 step=0.1
             )
@@ -314,34 +305,34 @@ with tab2:
         projected_weight = weight_lag_1 + delta_weight
         projected_height = height_lag_1 + delta_height
 
-        # haz future
-        z = projected_height
+        # # haz future
+        # z = projected_height
         projected_age = int(round(projected_age))
         match = ref_who.loc[(ref_who["age_months"] == projected_age) & (ref_who["sex"] == sex)]
         if match.empty:
             np.nan
         ref = match.iloc[0]
         l_val, m_val, s_val = ref["L"], ref["M"], ref["S"]
-        haz_future = (((z / m_val) ** l_val) - 1) / (l_val * s_val)
-        haz_future = round(haz_future, 2)
+        # haz_future = (((z / m_val) ** l_val) - 1) / (l_val * s_val)
+        # haz_future = round(haz_future, 2)
 
-        if pd.isna(haz_future):
-            status_future = "Unknown"
-        if haz_future < -3:
-            status_future = "Severely stunted"
-        elif haz_future < -2:
-            status_future = "Stunted"
-        elif haz_future <= 3:
-            status_future = "Normal"
-        else:
-            status_future = "Tall"   
+        # if pd.isna(haz_future):
+        #     status_future = "Unknown"
+        # if haz_future < -3:
+        #     status_future = "Severely stunted"
+        # elif haz_future < -2:
+        #     status_future = "Stunted"
+        # elif haz_future <= 3:
+        #     status_future = "Normal"
+        # else:
+        #     status_future = "Tall"   
 
-        # reverse haz
-        if status_future in ["Severely stunted", "Stunted"]:
-            haz_based = -1.99
-            z_based = (m_val * ((haz_based * l_val * s_val) + 1) ** (1 / l_val))
-        else:
-            z_based = None
+        # # reverse haz
+        # if status_future in ["Severely stunted", "Stunted"]:
+        #     haz_based = -1.99
+        #     z_based = (m_val * ((haz_based * l_val * s_val) + 1) ** (1 / l_val))
+        # else:
+        #     z_based = None
 
         # 1. CREATE DATAFRAME
         input_data = pd.DataFrame([{
@@ -431,32 +422,61 @@ with tab2:
         # RIGHT
         with res_col3:
             # Haz Now
-            match = ref_who.loc[(ref_who["age_months"] == round(measurement_age_months)) & (ref_who["sex"] == sex)]
-            if match.empty:
-                np.nan
-            ref = match.iloc[0]
-            l_val, m_val, s_val = ref["L"], ref["M"], ref["S"]
-            haz_now = (((height_lag_1 / m_val) ** l_val) - 1) / (l_val * s_val)
-            haz_now = round(haz_now, 2)
+            # match = ref_who.loc[(ref_who["age_months"] == round(measurement_age_months)) & (ref_who["sex"] == sex)]
+            # if match.empty : np.nan
+            # ref = match.iloc[0]
+            # l_val, m_val, s_val = ref["L"], ref["M"], ref["S"]
+            # haz_now = (((height_lag_1 / m_val) ** l_val) - 1) / (l_val * s_val)
+            # haz_now = round(haz_now, 2)
             # Haz Now
             # st.markdown("##### 👶 Saat Ini")
             # st.write(f"**Umur**  {measurement_age_months:.0f} bulan")
             # st.write(f"**TB**  {height_lag_1:.1f} cm")
             # st.write(f"**HAZ**  {haz_now:.2f} SD")
             # st.write(f"**Status**  {predicted_status}")
+            if projected_height > 0:
+                projected_bmi = projected_weight / ((projected_height / 100) ** 2)
+            else:
+                projected_bmi = 0.0
+                
+            data_future = pd.DataFrame([{
+                "measurement_age_months":projected_age,
+                "sex":sex,
+                "history_ari":history_ari,
+                "history_diarrhea":history_diarrhea,
+                "complete_immunization":complete_immunization,
+                "weight_lag_1":projected_weight,
+                "height_lag_1":projected_height,
+                "bmi_lag_1":projected_bmi,
+                "stunting_lag_1":stunting_lag_1,
+                "wealth_index":wealth_index,
+                "maternal_education":maternal_education
+            }])
+
+            X_future = preprocess_new_data(data_future,feature_columns)
+            prediction_future = xgb_model.predict(X_future)
+            probability_future = (xgb_model.predict_proba(X_future)[0])
+            status_future = (le_ts.inverse_transform(prediction_future)[0])
 
             st.markdown(f"##### 📈 Proyeksi +{projection_months} Bulan")
             st.write(f"**Umur**  {projected_age:.0f} bulan")
             st.write(f"**TB**  {projected_height:.1f} cm  "
                 f"(↑ {delta_height:.1f} cm)")
-            st.write(f"**HAZ**  {haz_future:.2f} SD  "
-                f"(↑ {haz_future - haz_now:.2f} SD)"
-            )
+            # st.write(f"**HAZ**  {haz_future:.2f} SD  "
+            #     f"(↑ {haz_future - haz_now:.2f} SD)"
+            # )
         
             if status_future in ["Severely stunted", "Stunted"]:
                 st.error(f"🚨 **{status_future}**")
             else:
                 st.success(f"✅ **{status_future}**")
+
+            # reverse haz
+            if status_future in ["Severely stunted", "Stunted"]:
+                haz_based = -1.99
+                z_based = (m_val * ((haz_based * l_val * s_val) + 1) ** (1 / l_val))
+            else:
+                z_based = None
 
             if z_based is not None:
                 st.markdown(f"##### 🎯 Target Naik TB {projection_months} Bulan (min)")
