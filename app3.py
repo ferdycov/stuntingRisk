@@ -170,6 +170,15 @@ with tab1 :
         "yang sangat rendah dengan antropometri anak pada saat pengukuran. Temuan ini menunjukkan bahwa variabel antropometri saat ini "
         "mengandung informasi yang kuat mengenai status pertumbuhan, namun juga memiliki potensi redundansi informasi sehingga perlu "
         "diperhatikan dalam pemilihan fitur dan interpretasi model",text_alignment="justify")
+    
+    pic_3,caption_3 = st.columns([2.5,0.5])
+    with pic_3 :
+        tile3 = st.container()
+        tile3.image("alasan_time_series.png", caption="")
+    with caption_3 :
+        tile3 = st.container()
+        tile3.text("Total anak: 24399\nAnak dengan status BERUBAH selama 5 bulan: 7389 (30.3%)\n"
+        "Anak dengan status TETAP selama 5 bulan: 17010 (69.7%)",text_alignment="justify")
 
 # TAB 2
 with tab2:
